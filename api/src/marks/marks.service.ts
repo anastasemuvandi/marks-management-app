@@ -2,23 +2,31 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Mark } from './mark.entity';
+import { Student } from '../students/student.entity';
 import { CreateMarkDto } from './create-mark.dto';
 import { UpdateMarkDto } from './update-mark.dto';
 
 @Injectable()
 export class MarksService {
-  constructor(@InjectRepository(Mark) private repo: Repository<Mark>) {}
+  constructor(
+    @InjectRepository(Mark) private repo: Repository<Mark>,
+    @InjectRepository(Student) private studentRepo: Repository<Student>,
+  ) {}
 
   findAll() {
-    return this.repo.find({ relations: ['student'], order: { createdAt: 'DESC' } });
+    return this.repo.find({ relations: ['student', 'module', 'semester', 'semester.academicYear'], order: { createdAt: 'DESC' } });
   }
 
   findByStudent(studentId: string) {
-    return this.repo.find({ where: { studentId }, order: { subject: 'ASC' } });
+    return this.repo.find({
+      where: { studentId },
+      relations: ['module', 'semester', 'semester.academicYear'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findOne(id: string) {
-    const m = await this.repo.findOne({ where: { id }, relations: ['student'] });
+    const m = await this.repo.findOne({ where: { id }, relations: ['student', 'module', 'semester'] });
     if (!m) throw new NotFoundException(`Mark #${id} not found`);
     return m;
   }
@@ -26,6 +34,13 @@ export class MarksService {
   async create(dto: CreateMarkDto) {
     if (dto.score > (dto.maxScore ?? 100))
       throw new BadRequestException('Score cannot exceed maxScore');
+
+    // verify student is enrolled in the module
+    const student = await this.studentRepo.findOne({ where: { id: dto.studentId }, relations: ['modules'] });
+    if (!student) throw new NotFoundException('Student not found');
+    if (!student.modules.find(m => m.id === dto.moduleId))
+      throw new BadRequestException('Student is not enrolled in this module');
+
     return this.repo.save(this.repo.create({ ...dto, maxScore: dto.maxScore ?? 100 }));
   }
 
@@ -43,13 +58,13 @@ export class MarksService {
   }
 
   async getGradeSummary() {
-    const marks = await this.repo.find({ relations: ['student'] });
-    const byStudent: Record<string, { student: any; marks: Mark[] }> = {};
+    const marks = await this.repo.find({ relations: ['student', 'module', 'semester', 'semester.academicYear'] });
+    const byStudent: Record<string, { student: Student; marks: Mark[] }> = {};
 
     for (const mark of marks) {
-      if (!byStudent[mark.studentId]) {
+      if (!mark.studentId) continue;
+      if (!byStudent[mark.studentId])
         byStudent[mark.studentId] = { student: mark.student, marks: [] };
-      }
       byStudent[mark.studentId].marks.push(mark);
     }
 
@@ -63,7 +78,7 @@ export class MarksService {
         totalMax,
         percentage: Math.round(percentage * 100) / 100,
         grade: this.getGrade(percentage),
-        subjectCount: marks.length,
+        moduleCount: marks.length,
         marks,
       };
     }).sort((a, b) => b.percentage - a.percentage);
