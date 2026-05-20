@@ -1,16 +1,19 @@
-import { IsString, IsNotEmpty, IsNumber, Min, IsPositive, IsUUID } from 'class-validator';
+import { IsNumber, Min, IsPositive, IsUUID, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class CreateMarkDto {
-  @ApiProperty({ description: 'UUID of the student' })
+  @ApiProperty()
   @IsUUID()
   studentId: string;
 
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  subject: string;
+  @IsUUID()
+  moduleId: string;
+
+  @ApiProperty()
+  @IsUUID()
+  semesterId: string;
 
   @ApiProperty()
   @IsNumber()
@@ -21,6 +24,7 @@ export class CreateMarkDto {
   @ApiPropertyOptional({ default: 100 })
   @IsNumber()
   @IsPositive()
+  @IsOptional()
   @Type(() => Number)
   maxScore?: number;
 }

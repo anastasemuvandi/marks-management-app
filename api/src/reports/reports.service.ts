@@ -13,8 +13,11 @@ export class ReportsService {
       marks.map(m => ({
         'Student Name': student?.name ?? '',
         'Student ID': student?.studentId ?? '',
-        Group: student?.group ?? '',
-        Subject: m.subject,
+        Class: (student as any)?.class?.name ?? '',
+        Module: (m as any).module?.name ?? '',
+        'Module Code': (m as any).module?.code ?? '',
+        Semester: (m as any).semester?.name ?? '',
+        'Academic Year': (m as any).semester?.academicYear?.name ?? '',
         Score: m.score,
         'Max Score': m.maxScore,
         Percentage: `${Math.round((m.score / m.maxScore) * 100)}%`,
@@ -27,15 +30,15 @@ export class ReportsService {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Marks Report');
 
-    const summaryRows = summary.map(({ student, totalScore, totalMax, percentage, grade, subjectCount }) => ({
+    const summaryRows = summary.map(({ student, totalScore, totalMax, percentage, grade, moduleCount }) => ({
       'Student Name': student?.name ?? '',
       'Student ID': student?.studentId ?? '',
-      Group: student?.group ?? '',
+      Class: (student as any)?.class?.name ?? '',
       'Total Score': totalScore,
       'Max Score': totalMax,
-      'Percentage': `${percentage}%`,
+      Percentage: `${percentage}%`,
       Grade: grade,
-      Subjects: subjectCount,
+      Modules: moduleCount,
     }));
     const ws2 = XLSX.utils.json_to_sheet(summaryRows);
     XLSX.utils.book_append_sheet(wb, ws2, 'Summary');

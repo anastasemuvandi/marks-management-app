@@ -14,7 +14,10 @@ export class StudentsController {
 
   @Get() findAll() { return this.service.findAll(); }
   @Get(':id') findOne(@Param('id', ParseUUIDPipe) id: string) { return this.service.findOne(id); }
+  @Get(':id/modules') getModules(@Param('id', ParseUUIDPipe) id: string) { return this.service.getModules(id); }
   @Post() create(@Body() dto: CreateStudentDto) { return this.service.create(dto); }
   @Put(':id') update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateStudentDto) { return this.service.update(id, dto); }
   @Delete(':id') remove(@Param('id', ParseUUIDPipe) id: string) { return this.service.remove(id); }
+  @Post(':id/modules/:moduleId') enrollModule(@Param('id', ParseUUIDPipe) id: string, @Param('moduleId', ParseUUIDPipe) moduleId: string) { return this.service.enrollModule(id, moduleId); }
+  @Delete(':id/modules/:moduleId') unenrollModule(@Param('id', ParseUUIDPipe) id: string, @Param('moduleId', ParseUUIDPipe) moduleId: string) { return this.service.unenrollModule(id, moduleId); }
 }

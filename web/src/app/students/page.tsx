@@ -1,38 +1,39 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { studentsApi, Student } from '@/lib/api';
+import { studentsApi, classesApi, Student, Class } from '@/lib/api';
+
+type FormState = { name: string; studentId: string; classId: string };
+const empty: FormState = { name: '', studentId: '', classId: '' };
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Student | null>(null);
-  const [form, setForm] = useState({ name: '', studentId: '', group: '' });
+  const [form, setForm] = useState<FormState>(empty);
   const [error, setError] = useState('');
 
-  const load = () => studentsApi.getAll().then(setStudents).finally(() => setLoading(false));
+  const load = () => Promise.all([studentsApi.getAll(), classesApi.getAll()])
+    .then(([s, c]) => { setStudents(s); setClasses(c); }).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
-  const openAdd = () => { setEditing(null); setForm({ name: '', studentId: '', group: '' }); setError(''); setShowForm(true); };
-  const openEdit = (s: Student) => { setEditing(s); setForm({ name: s.name, studentId: s.studentId, group: s.group ?? '' }); setError(''); setShowForm(true); };
+  const openAdd = () => { setEditing(null); setForm(empty); setError(''); setShowForm(true); };
+  const openEdit = (s: Student) => { setEditing(s); setForm({ name: s.name, studentId: s.studentId, classId: s.classId ?? '' }); setError(''); setShowForm(true); };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault(); setError('');
     try {
-      if (editing) await studentsApi.update(editing.id, form);
-      else await studentsApi.create(form);
-      setShowForm(false);
-      load();
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? 'An error occurred');
-    }
+      const payload = { ...form, classId: form.classId || undefined };
+      if (editing) await studentsApi.update(editing.id, payload);
+      else await studentsApi.create(payload);
+      setShowForm(false); load();
+    } catch (err: any) { setError(err.response?.data?.message ?? 'An error occurred'); }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this student and all their marks?')) return;
-    await studentsApi.delete(id);
-    load();
+    await studentsApi.delete(id); load();
   };
 
   if (loading) return <div className="text-center py-12 text-gray-400">Loading...</div>;
@@ -52,15 +53,18 @@ export default function StudentsPage() {
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                <input required value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
-                <input required value={form.studentId} onChange={e => setForm(f => ({...f, studentId: e.target.value}))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <input required value={form.studentId} onChange={e => setForm(f => ({ ...f, studentId: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Group / Class (optional)</label>
-                <input value={form.group} onChange={e => setForm(f => ({...f, group: e.target.value}))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Class <span className="text-gray-400 font-normal">(optional)</span></label>
+                <select value={form.classId} onChange={e => setForm(f => ({ ...f, classId: e.target.value }))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">No class assigned</option>
+                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}{c.level ? ` — ${c.level}` : ''}</option>)}
+                </select>
               </div>
               <div className="flex gap-2 pt-2">
                 <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700">Save</button>
@@ -77,7 +81,8 @@ export default function StudentsPage() {
             <tr>
               <th className="px-5 py-3 text-left">Name</th>
               <th className="px-5 py-3 text-left">Student ID</th>
-              <th className="px-5 py-3 text-left">Group</th>
+              <th className="px-5 py-3 text-left">Class</th>
+              <th className="px-5 py-3 text-left">Modules</th>
               <th className="px-5 py-3 text-left">Marks</th>
               <th className="px-5 py-3 text-right">Actions</th>
             </tr>
@@ -87,7 +92,8 @@ export default function StudentsPage() {
               <tr key={s.id} className="border-t border-gray-100 hover:bg-gray-50">
                 <td className="px-5 py-3 font-medium">{s.name}</td>
                 <td className="px-5 py-3 text-gray-500">{s.studentId}</td>
-                <td className="px-5 py-3 text-gray-500">{s.group || '—'}</td>
+                <td className="px-5 py-3 text-gray-500">{s.class?.name ?? '—'}</td>
+                <td className="px-5 py-3 text-gray-500">{s.modules?.length ?? 0}</td>
                 <td className="px-5 py-3 text-gray-500">{s.marks?.length ?? 0}</td>
                 <td className="px-5 py-3 text-right">
                   <button onClick={() => openEdit(s)} className="text-blue-600 hover:underline text-xs mr-3">Edit</button>
@@ -95,9 +101,7 @@ export default function StudentsPage() {
                 </td>
               </tr>
             ))}
-            {students.length === 0 && (
-              <tr><td colSpan={5} className="px-5 py-8 text-center text-gray-400">No students yet. Click &quot;+ Add Student&quot; to begin.</td></tr>
-            )}
+            {students.length === 0 && <tr><td colSpan={6} className="px-5 py-8 text-center text-gray-400">No students yet.</td></tr>}
           </tbody>
         </table>
       </div>

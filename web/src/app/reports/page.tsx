@@ -21,12 +21,12 @@ export default function ReportsPage() {
 
     autoTable(doc, {
       startY: 28,
-      head: [['#', 'Student Name', 'Student ID', 'Group', 'Total Score', 'Max', '%', 'Grade']],
+      head: [['#', 'Student Name', 'Student ID', 'Class', 'Total Score', 'Max', '%', 'Grade']],
       body: summary.map((r, i) => [
         i + 1,
         r.student.name,
         r.student.studentId,
-        r.student.group || '—',
+        r.student.class?.name || '—',
         r.totalScore,
         r.totalMax,
         `${r.percentage}%`,
@@ -58,11 +58,11 @@ export default function ReportsPage() {
               <th className="px-5 py-3 text-left">#</th>
               <th className="px-5 py-3 text-left">Student</th>
               <th className="px-5 py-3 text-left">ID</th>
-              <th className="px-5 py-3 text-left">Group</th>
+              <th className="px-5 py-3 text-left">Class</th>
               <th className="px-5 py-3 text-left">Score</th>
               <th className="px-5 py-3 text-left">%</th>
               <th className="px-5 py-3 text-left">Grade</th>
-              <th className="px-5 py-3 text-left">Subjects</th>
+              <th className="px-5 py-3 text-left">Modules</th>
             </tr>
           </thead>
           <tbody>
@@ -71,13 +71,13 @@ export default function ReportsPage() {
                 <td className="px-5 py-3 text-gray-400">{i + 1}</td>
                 <td className="px-5 py-3 font-medium">{r.student.name}</td>
                 <td className="px-5 py-3 text-gray-500">{r.student.studentId}</td>
-                <td className="px-5 py-3 text-gray-500">{r.student.group || '—'}</td>
+                <td className="px-5 py-3 text-gray-500">{r.student.class?.name || '—'}</td>
                 <td className="px-5 py-3">{r.totalScore} / {r.totalMax}</td>
                 <td className="px-5 py-3">{r.percentage}%</td>
                 <td className="px-5 py-3">
                   <span className={`px-2 py-0.5 rounded text-xs font-bold ${gradeColor(r.grade)}`}>{r.grade}</span>
                 </td>
-                <td className="px-5 py-3 text-gray-500">{r.subjectCount}</td>
+                <td className="px-5 py-3 text-gray-500">{r.moduleCount}</td>
               </tr>
             ))}
             {summary.length === 0 && (
