@@ -17,6 +17,7 @@ api/*.db
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # IDE
 .idea/
