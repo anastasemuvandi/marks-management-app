@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StudentsModule } from './students/students.module';
 import { MarksModule } from './marks/marks.module';
 import { ReportsModule } from './reports/reports.module';
@@ -11,11 +12,19 @@ import { User } from './users/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'better-sqlite3',
-      database: 'marks.db',
-      entities: [Student, Mark, User],
-      synchronize: true,
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST', 'localhost'),
+        port: config.get<number>('DB_PORT', 5432),
+        username: config.get<string>('DB_USER', 'postgres'),
+        password: config.get<string>('DB_PASSWORD', 'postgres'),
+        database: config.get<string>('DB_NAME', 'marks_manager'),
+        entities: [Student, Mark, User],
+        synchronize: true,
+      }),
     }),
     StudentsModule,
     MarksModule,
